@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardPrepaymentItem"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="1.5dp"
+    app:strokeColor="#E0E0E0">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvPrepaymentAmount"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Prepayment: ₹30,000"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#1A73E8" />
+
+            <CheckBox
+                android:id="@+id/cbSelected"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:focusable="false" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#EEEEEE"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvSavedInterest"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Save ₹23,400 interest"
+            android:textSize="14sp"
+            android:textColor="#188038"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvTenureReduction"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Reduce tenure by 6 months (New: 42 months)"
+            android:textSize="14sp"
+            android:textColor="#3C4043" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F8F9FA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:baselineAligned="false"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Loan &amp; Prepayment Calculator"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#202124"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Loan Type Toggle -->
+        <RadioGroup
+            android:id="@+id/rgLoanType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rbNewLoan"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="New Loan"
+                android:textColor="#202124" />
+
+            <RadioButton
+                android:id="@+id/rbExistingLoan"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Existing Loan"
+                android:textColor="#202124" />
+        </RadioGroup>
+
+        <!-- Input Fields -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilLoanAmount"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:hint="Loan Amount / Outstanding Principal (₹)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etLoanAmount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilInterestRate"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:hint="Annual Interest Rate (%)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etInterestRate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Current EMI (for Existing Loan only) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCurrentEMI"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            android:hint="Current Monthly EMI (₹)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCurrentEMI"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Tenure Input & Radio Buttons -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilTenure"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:hint="Tenure">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTenure"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <RadioGroup
+            android:id="@+id/rgTenureUnit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tenure Unit: "
+                android:textSize="14sp"
+                android:textColor="#5F6368"
+                android:layout_marginEnd="12dp" />
+
+            <RadioButton
+                android:id="@+id/rbMonths"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Months"
+                android:textColor="#202124"
+                android:layout_marginEnd="24dp" />
+
+            <RadioButton
+                android:id="@+id/rbYears"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Years"
+                android:textColor="#202124" />
+        </RadioGroup>
+
+        <!-- NEW: EMI debit date -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilEmiDate"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Next EMI Debit Date"
+            app:helperText="This EMI is added to History on this date every month"
+            app:helperTextEnabled="true">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEmiDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:cursorVisible="false"
+                android:focusable="false"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/btnCalculate"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Calculate EMI &amp; Suggestions"
+            android:backgroundTint="#1A73E8"
+            app:cornerRadius="8dp"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Results Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardResults"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="3dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#E0E0E0"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Calculation Results"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#1A73E8"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/tvResultEMI"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Monthly EMI: ₹0"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#202124"
+                    android:layout_marginBottom="6dp" />
+
+                <TextView
+                    android:id="@+id/tvResultTotalInterest"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Total Interest Payable: ₹0"
+                    android:textSize="15sp"
+                    android:textColor="#3C4043"
+                    android:layout_marginBottom="6dp" />
+
+                <TextView
+                    android:id="@+id/tvResultTotalRepayment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Total Repayment: ₹0"
+                    android:textSize="15sp"
+                    android:textColor="#3C4043"
+                    android:layout_marginBottom="12dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#EEEEEE"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Smart Prepayment Suggestions"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#202124"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:id="@+id/layoutSuggestionsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp" />
+
+                <Button
+                    android:id="@+id/btnSaveSelection"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Save Selection"
+                    android:backgroundTint="#188038"
+                    app:cornerRadius="8dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="*Prepayment savings are estimates. Actual savings may vary depending on lender terms, charges, and loan conditions."
+                    android:textSize="11sp"
+                    android:textColor="#5F6368"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</ScrollView>
