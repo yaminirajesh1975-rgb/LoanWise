@@ -39,6 +39,9 @@ public class ProfileFragment extends Fragment {
         loadProfileData();
 
         btnProfileLogout.setOnClickListener(v -> {
+            if (getContext() != null) {
+                SessionManager.clearSession(getContext());
+            }
             mAuth.signOut();
             Intent intent = new Intent(getActivity(), LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -59,9 +62,16 @@ public class ProfileFragment extends Fragment {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         String username = documentSnapshot.getString("username");
+                        String email = documentSnapshot.getString("email");
                         String phone = documentSnapshot.getString("phoneNumber");
                         tvProfileName.setText(username != null ? username : "User Profile");
-                        tvProfilePhone.setText("Phone: " + (phone != null ? phone : "N/A"));
+                        if (email != null && !email.trim().isEmpty()) {
+                            tvProfilePhone.setText("Email: " + email);
+                        } else if (phone != null && !phone.trim().isEmpty()) {
+                            tvProfilePhone.setText("Phone: " + phone);
+                        } else {
+                            tvProfilePhone.setText("Email: N/A");
+                        }
                     }
                 });
     }

@@ -3,16 +3,25 @@ package com.example.loanwise.models;
 public class UserModel {
     private String userId;
     private String username;
+    private String email;
     private String phoneNumber;
 
     public UserModel() {
         // Required for Firestore public no-arg constructor
     }
 
+    public UserModel(String userId, String username, String email, String phoneNumber) {
+        this.userId = userId;
+        this.username = username;
+        this.email = email;
+        this.phoneNumber = phoneNumber;
+    }
+
     public UserModel(String userId, String username, String phoneNumber) {
         this.userId = userId;
         this.username = username;
         this.phoneNumber = phoneNumber;
+        this.email = "";
     }
 
     public String getUserId() {
@@ -29,6 +38,14 @@ public class UserModel {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPhoneNumber() {

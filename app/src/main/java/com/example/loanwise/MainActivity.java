@@ -19,12 +19,33 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mAuth = FirebaseAuth.getInstance();
-        if (mAuth.getCurrentUser() == null) {
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-            finish();
+
+        // Check backend JWT session
+        if (!SessionManager.isLoggedIn(this)) {
+            redirectToLogin();
             return;
         }
 
+        // Ensure Firebase session is connected for Firestore operations
+        if (mAuth.getCurrentUser() == null) {
+            mAuth.signInAnonymously().addOnCompleteListener(task -> {
+                if (task.isSuccessful() && mAuth.getCurrentUser() != null) {
+                    initApp(savedInstanceState);
+                } else {
+                    redirectToLogin();
+                }
+            });
+        } else {
+            initApp(savedInstanceState);
+        }
+    }
+
+    private void redirectToLogin() {
+        startActivity(new Intent(MainActivity.this, LoginActivity.class));
+        finish();
+    }
+
+    private void initApp(Bundle savedInstanceState) {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 
         if (savedInstanceState == null) {

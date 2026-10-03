@@ -19,7 +19,7 @@
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="#1A73E8"
-            android:layout_marginTop="48dp"
+            android:layout_marginTop="56dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
@@ -37,40 +37,22 @@
             app:layout_constraintEnd_toEndOf="parent" />
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilUsername"
+            android:id="@+id/tilEmail"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:hint="Full Name / Username"
+            android:layout_marginTop="48dp"
+            android:hint="Email"
             app:layout_constraintTop_toBottomOf="@id/tvSubtitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etUsername"
+                android:id="@+id/etEmail"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textPersonName"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilPhone"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="Phone Number (e.g. +919876543210)"
-            app:layout_constraintTop_toBottomOf="@id/tilUsername"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etPhone"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="phone"
+                android:textColor="#202124"
+                android:inputType="textEmailAddress"
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -80,10 +62,23 @@
             android:layout_height="56dp"
             android:text="Send OTP"
             android:textSize="16sp"
+            android:textStyle="bold"
             android:backgroundTint="#1A73E8"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="20dp"
             app:cornerRadius="8dp"
-            app:layout_constraintTop_toBottomOf="@id/tilPhone"
+            app:layout_constraintTop_toBottomOf="@id/tilEmail"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/tvCooldown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="#5F6368"
+            android:visibility="gone"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/btnSendOtp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -93,9 +88,10 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:hint="Enter 6-digit OTP"
+            android:hint="Enter OTP"
+            app:helperTextEnabled="true"
             android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@id/btnSendOtp"
+            app:layout_constraintTop_toBottomOf="@id/tvCooldown"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
@@ -103,6 +99,7 @@
                 android:id="@+id/etOtp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:textColor="#202124"
                 android:inputType="number"
                 android:maxLength="6"
                 android:maxLines="1" />
@@ -112,13 +109,27 @@
             android:id="@+id/btnVerifyOtp"
             android:layout_width="0dp"
             android:layout_height="56dp"
-            android:text="Verify &amp; Login"
+            android:text="Verify OTP"
             android:textSize="16sp"
+            android:textStyle="bold"
             android:backgroundTint="#1A73E8"
             android:layout_marginTop="16dp"
             android:visibility="gone"
             app:cornerRadius="8dp"
             app:layout_constraintTop_toBottomOf="@id/tilOtp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/tvServerConfig"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Server Settings"
+            android:textSize="12sp"
+            android:textColor="#1A73E8"
+            android:padding="12dp"
+            android:layout_marginTop="32dp"
+            app:layout_constraintTop_toBottomOf="@id/btnVerifyOtp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
@@ -128,7 +139,7 @@
             android:layout_height="wrap_content"
             android:visibility="gone"
             android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@id/btnVerifyOtp"
+            app:layout_constraintTop_toBottomOf="@id/tvServerConfig"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 

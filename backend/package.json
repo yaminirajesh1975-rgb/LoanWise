@@ -1,0 +1,27 @@
+{
+  "name": "loanwise-auth-backend",
+  "version": "1.0.0",
+  "description": "Secure Email OTP Authentication Backend for LoanWise using Resend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test-auth.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "resend": "^4.1.2"
+  },
+  "keywords": [
+    "loanwise",
+    "auth",
+    "otp",
+    "resend",
+    "email"
+  ],
+  "author": "",
+  "license": "ISC"
+}

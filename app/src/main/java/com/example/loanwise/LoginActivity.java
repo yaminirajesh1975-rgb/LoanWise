@@ -2,36 +2,36 @@ package com.example.loanwise;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.text.TextUtils;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.loanwise.models.UserModel;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.PhoneAuthCredential;
-import com.google.firebase.auth.PhoneAuthOptions;
-import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
-
-import java.util.concurrent.TimeUnit;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private TextInputLayout tilUsername, tilPhone, tilOtp;
+    private TextInputLayout tilEmail, tilOtp;
     private Button btnSendOtp, btnVerifyOtp;
+    private TextView tvCooldown, tvServerConfig;
     private ProgressBar progressBar;
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
 
-    private String verificationId;
+    private CountDownTimer countDownTimer;
+    private String pendingEmail = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,87 +41,80 @@ public class LoginActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // Check if user is already logged in
-        if (mAuth.getCurrentUser() != null) {
-            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-            finish();
+        // Check if user already has an active session
+        if (SessionManager.isLoggedIn(this) && mAuth.getCurrentUser() != null) {
+            proceedToMain();
             return;
         }
 
-        tilUsername = findViewById(R.id.tilUsername);
-        tilPhone = findViewById(R.id.tilPhone);
+        tilEmail = findViewById(R.id.tilEmail);
         tilOtp = findViewById(R.id.tilOtp);
         btnSendOtp = findViewById(R.id.btnSendOtp);
         btnVerifyOtp = findViewById(R.id.btnVerifyOtp);
+        tvCooldown = findViewById(R.id.tvCooldown);
+        tvServerConfig = findViewById(R.id.tvServerConfig);
         progressBar = findViewById(R.id.progressBar);
 
-        btnSendOtp.setOnClickListener(v -> sendVerificationOtp());
-        btnVerifyOtp.setOnClickListener(v -> verifyOtpAndLogin());
+        btnSendOtp.setOnClickListener(v -> handleSendOtp());
+        btnVerifyOtp.setOnClickListener(v -> handleVerifyOtp());
+        tvServerConfig.setOnClickListener(v -> showServerConfigDialog());
     }
 
-    private void sendVerificationOtp() {
-        String username = tilUsername.getEditText().getText().toString().trim();
-        String phoneNumber = tilPhone.getEditText().getText().toString().trim();
+    private void handleSendOtp() {
+        String email = (tilEmail.getEditText() != null)
+                ? tilEmail.getEditText().getText().toString().trim()
+                : "";
 
-        if (TextUtils.isEmpty(username)) {
-            tilUsername.setError("Please enter username");
+        if (TextUtils.isEmpty(email) || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            tilEmail.setError("Please enter a valid email address");
             return;
         }
-        tilUsername.setError(null);
-
-        if (TextUtils.isEmpty(phoneNumber) || phoneNumber.length() < 10) {
-            tilPhone.setError("Please enter a valid phone number with country code (e.g., +91...)");
-            return;
-        }
-        tilPhone.setError(null);
+        tilEmail.setError(null);
+        pendingEmail = email;
 
         progressBar.setVisibility(View.VISIBLE);
         btnSendOtp.setEnabled(false);
 
-        PhoneAuthOptions options =
-                PhoneAuthOptions.newBuilder(mAuth)
-                        .setPhoneNumber(phoneNumber)
-                        .setTimeout(60L, TimeUnit.SECONDS)
-                        .setActivity(this)
-                        .setCallbacks(mCallbacks)
-                        .build();
-        PhoneAuthProvider.verifyPhoneNumber(options);
+        AuthApiClient.sendOtp(this, email, new AuthApiClient.SendOtpListener() {
+            @Override
+            public void onSuccess(String message) {
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(LoginActivity.this, "OTP sent successfully", Toast.LENGTH_SHORT).show();
+
+                // Reveal OTP input and verification controls
+                tilOtp.setVisibility(View.VISIBLE);
+                btnVerifyOtp.setVisibility(View.VISIBLE);
+                btnVerifyOtp.setEnabled(true);
+                tilEmail.setEnabled(false);
+
+                // Start 60-second cooldown timer
+                startCooldownTimer(60);
+            }
+
+            @Override
+            public void onCooldown(String message, int secondsRemaining) {
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(LoginActivity.this, "Please wait before requesting another OTP", Toast.LENGTH_SHORT).show();
+                startCooldownTimer(secondsRemaining > 0 ? secondsRemaining : 60);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                progressBar.setVisibility(View.GONE);
+                btnSendOtp.setEnabled(true);
+                Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
-    private final PhoneAuthProvider.OnVerificationStateChangedCallbacks mCallbacks =
-            new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+    private void handleVerifyOtp() {
+        String otp = (tilOtp.getEditText() != null)
+                ? tilOtp.getEditText().getText().toString().trim()
+                : "";
 
-                @Override
-                public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
-                    signInWithPhoneAuthCredential(credential);
-                }
-
-                @Override
-                public void onVerificationFailed(@NonNull FirebaseException e) {
-                    progressBar.setVisibility(View.GONE);
-                    btnSendOtp.setEnabled(true);
-                    Toast.makeText(LoginActivity.this, "Verification Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                }
-
-                @Override
-                public void onCodeSent(@NonNull String verId,
-                                       @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                    progressBar.setVisibility(View.GONE);
-                    verificationId = verId;
-
-                    Toast.makeText(LoginActivity.this, "OTP Sent Successfully", Toast.LENGTH_SHORT).show();
-                    tilOtp.setVisibility(View.VISIBLE);
-                    btnVerifyOtp.setVisibility(View.VISIBLE);
-                    btnSendOtp.setVisibility(View.GONE);
-                    tilUsername.setEnabled(false);
-                    tilPhone.setEnabled(false);
-                }
-            };
-
-    private void verifyOtpAndLogin() {
-        String otp = tilOtp.getEditText().getText().toString().trim();
-        if (TextUtils.isEmpty(otp) || otp.length() < 6) {
-            tilOtp.setError("Enter valid 6-digit OTP");
+        if (TextUtils.isEmpty(otp) || otp.length() != 6) {
+            tilOtp.setError("Enter the OTP");
+            Toast.makeText(this, "Enter the OTP", Toast.LENGTH_SHORT).show();
             return;
         }
         tilOtp.setError(null);
@@ -129,46 +122,153 @@ public class LoginActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         btnVerifyOtp.setEnabled(false);
 
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, otp);
-        signInWithPhoneAuthCredential(credential);
+        AuthApiClient.verifyOtp(this, pendingEmail, otp, new AuthApiClient.VerifyOtpListener() {
+            @Override
+            public void onSuccess(String message, String token, String email) {
+                Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
+
+                // Save secure JWT session
+                SessionManager.saveSession(LoginActivity.this, token, email);
+
+                // Connect to Firebase session to preserve existing Firestore functionality
+                syncWithFirebaseAndProceed(email);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                progressBar.setVisibility(View.GONE);
+                btnVerifyOtp.setEnabled(true);
+
+                if (errorMessage.toLowerCase().contains("expired")) {
+                    tilOtp.setError("OTP expired");
+                    Toast.makeText(LoginActivity.this, "OTP expired", Toast.LENGTH_SHORT).show();
+                } else if (errorMessage.toLowerCase().contains("too many attempts") ||
+                           errorMessage.toLowerCase().contains("attempts")) {
+                    tilOtp.setError("Too many attempts");
+                    btnVerifyOtp.setEnabled(false);
+                    Toast.makeText(LoginActivity.this, "Too many attempts", Toast.LENGTH_LONG).show();
+                } else {
+                    tilOtp.setError("Invalid OTP");
+                    Toast.makeText(LoginActivity.this, "Invalid OTP", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
-    private void signInWithPhoneAuthCredential(PhoneAuthCredential credential) {
-        mAuth.signInWithCredential(credential)
-                .addOnCompleteListener(this, task -> {
-                    progressBar.setVisibility(View.GONE);
-                    if (task.isSuccessful()) {
-                        saveUserToFirestore();
-                    } else {
-                        btnVerifyOtp.setEnabled(true);
-                        Toast.makeText(LoginActivity.this, "Login Failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
-                    }
-                });
-    }
-
-    private void saveUserToFirestore() {
-        if (mAuth.getCurrentUser() == null) return;
-
-        String userId = mAuth.getCurrentUser().getUid();
-        String username = tilUsername.getEditText().getText().toString().trim();
-        String phoneNumber = mAuth.getCurrentUser().getPhoneNumber();
-        if (phoneNumber == null) {
-            phoneNumber = tilPhone.getEditText().getText().toString().trim();
+    private void syncWithFirebaseAndProceed(String email) {
+        if (mAuth.getCurrentUser() != null) {
+            saveUserToFirestore(mAuth.getCurrentUser().getUid(), email);
+            return;
         }
 
-        UserModel userModel = new UserModel(userId, username, phoneNumber);
-
-        db.collection("users").document(userId)
-                .set(userModel)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(LoginActivity.this, "Login Successful!", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(LoginActivity.this, "Failed to save profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        // Establish Firebase session for Firestore security & querying
+        mAuth.signInAnonymously().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && mAuth.getCurrentUser() != null) {
+                saveUserToFirestore(mAuth.getCurrentUser().getUid(), email);
+            } else {
+                // Fallback attempt: Email/password authentication
+                String fallbackPassword = "LoanWisePass@" + Math.abs(email.hashCode()) + "!";
+                mAuth.signInWithEmailAndPassword(email, fallbackPassword).addOnCompleteListener(signInTask -> {
+                    if (signInTask.isSuccessful() && mAuth.getCurrentUser() != null) {
+                        saveUserToFirestore(mAuth.getCurrentUser().getUid(), email);
+                    } else {
+                        mAuth.createUserWithEmailAndPassword(email, fallbackPassword).addOnCompleteListener(createTask -> {
+                            if (createTask.isSuccessful() && mAuth.getCurrentUser() != null) {
+                                saveUserToFirestore(mAuth.getCurrentUser().getUid(), email);
+                            } else {
+                                // If Firebase Auth offline, proceed since backend token is verified
+                                progressBar.setVisibility(View.GONE);
+                                proceedToMain();
+                            }
+                        });
+                    }
                 });
+            }
+        });
+    }
+
+    private void saveUserToFirestore(String userId, String email) {
+        db.collection("users").document(userId).get().addOnSuccessListener(documentSnapshot -> {
+            String username = (documentSnapshot.exists() && documentSnapshot.getString("username") != null)
+                    ? documentSnapshot.getString("username")
+                    : email.split("@")[0];
+
+            UserModel userModel = new UserModel(userId, username, email, "");
+            db.collection("users").document(userId).set(userModel)
+                    .addOnCompleteListener(t -> {
+                        progressBar.setVisibility(View.GONE);
+                        proceedToMain();
+                    });
+        }).addOnFailureListener(e -> {
+            UserModel userModel = new UserModel(userId, email.split("@")[0], email, "");
+            db.collection("users").document(userId).set(userModel)
+                    .addOnCompleteListener(t -> {
+                        progressBar.setVisibility(View.GONE);
+                        proceedToMain();
+                    });
+        });
+    }
+
+    private void startCooldownTimer(int seconds) {
+        if (countDownTimer != null) {
+            countDownTimer.cancel();
+        }
+
+        btnSendOtp.setEnabled(false);
+        tvCooldown.setVisibility(View.VISIBLE);
+
+        countDownTimer = new CountDownTimer(seconds * 1000L, 1000L) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                long sec = millisUntilFinished / 1000;
+                tvCooldown.setText("Resend OTP in " + sec + "s");
+            }
+
+            @Override
+            public void onFinish() {
+                tvCooldown.setVisibility(View.GONE);
+                btnSendOtp.setEnabled(true);
+                btnSendOtp.setText("Resend OTP");
+            }
+        }.start();
+    }
+
+    private void showServerConfigDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Backend Server Configuration");
+        builder.setMessage("Configure the authentication server URL.\nUse 'http://10.0.2.2:5001' for Android Emulator or your PC's LAN IP for physical devices:");
+
+        final EditText input = new EditText(this);
+        input.setText(BackendConfig.getBaseUrl(this));
+        builder.setView(input);
+
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String newUrl = input.getText().toString().trim();
+            if (!TextUtils.isEmpty(newUrl)) {
+                BackendConfig.setBaseUrl(this, newUrl);
+                Toast.makeText(this, "Server URL updated", Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNeutralButton("Reset Default", (dialog, which) -> {
+            BackendConfig.resetToDefault(this);
+            Toast.makeText(this, "Reset to default: " + BackendConfig.DEFAULT_EMULATOR_URL, Toast.LENGTH_SHORT).show();
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    private void proceedToMain() {
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (countDownTimer != null) {
+            countDownTimer.cancel();
+        }
     }
 }
