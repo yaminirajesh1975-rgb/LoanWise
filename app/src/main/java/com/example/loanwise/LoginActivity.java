@@ -42,7 +42,7 @@ public class LoginActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
 
         // Check if user already has an active session
-        if (SessionManager.isLoggedIn(this) && mAuth.getCurrentUser() != null) {
+        if (SessionManager.isLoggedIn(this)) {
             proceedToMain();
             return;
         }
@@ -156,34 +156,19 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void syncWithFirebaseAndProceed(String email) {
+        String stableUserId = SessionManager.getUserId(this);
         if (mAuth.getCurrentUser() != null) {
             saveUserToFirestore(mAuth.getCurrentUser().getUid(), email);
             return;
         }
 
-        // Establish Firebase session for Firestore security & querying
+        // Establish Firebase session in background if supported; fallback to stable session user ID
         mAuth.signInAnonymously().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && mAuth.getCurrentUser() != null) {
-                saveUserToFirestore(mAuth.getCurrentUser().getUid(), email);
-            } else {
-                // Fallback attempt: Email/password authentication
-                String fallbackPassword = "LoanWisePass@" + Math.abs(email.hashCode()) + "!";
-                mAuth.signInWithEmailAndPassword(email, fallbackPassword).addOnCompleteListener(signInTask -> {
-                    if (signInTask.isSuccessful() && mAuth.getCurrentUser() != null) {
-                        saveUserToFirestore(mAuth.getCurrentUser().getUid(), email);
-                    } else {
-                        mAuth.createUserWithEmailAndPassword(email, fallbackPassword).addOnCompleteListener(createTask -> {
-                            if (createTask.isSuccessful() && mAuth.getCurrentUser() != null) {
-                                saveUserToFirestore(mAuth.getCurrentUser().getUid(), email);
-                            } else {
-                                // If Firebase Auth offline, proceed since backend token is verified
-                                progressBar.setVisibility(View.GONE);
-                                proceedToMain();
-                            }
-                        });
-                    }
-                });
-            }
+            String uid = (task.isSuccessful() && mAuth.getCurrentUser() != null)
+                    ? mAuth.getCurrentUser().getUid()
+                    : stableUserId;
+            SessionManager.saveSession(this, SessionManager.getAuthToken(this), email, uid);
+            saveUserToFirestore(uid, email);
         });
     }
 

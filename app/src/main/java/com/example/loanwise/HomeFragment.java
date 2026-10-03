@@ -1,5 +1,6 @@
 package com.example.loanwise;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -70,8 +71,9 @@ public class HomeFragment extends Fragment {
         loadUserData();
 
         // Add any EMIs whose debit date has arrived, then load the loan card
-        if (mAuth.getCurrentUser() != null) {
-            EmiScheduler.postDueEmis(db, mAuth.getCurrentUser().getUid(),
+        String resolvedUserId = SessionManager.getUserId(getContext());
+        if (resolvedUserId != null) {
+            EmiScheduler.postDueEmis(db, resolvedUserId,
                     count -> { if (isAdded()) loadLoanData(); });
         }
 
@@ -86,8 +88,9 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadUserData() {
-        if (mAuth.getCurrentUser() == null) return;
-        String userId = mAuth.getCurrentUser().getUid();
+        final Context context = (getContext() != null) ? getContext() : getActivity();
+        String userId = SessionManager.getUserId(context);
+        if (userId == null) return;
 
         db.collection("users").document(userId).get()
                 .addOnSuccessListener(doc -> {
@@ -98,13 +101,30 @@ public class HomeFragment extends Fragment {
                             tvWelcomeHome.setText(username.trim());
                             tvAvatar.setText(initials(username));
                         }
+                    } else {
+                        String email = SessionManager.getUserEmail(context);
+                        if (email != null && !email.trim().isEmpty()) {
+                            String defaultName = email.split("@")[0];
+                            tvWelcomeHome.setText(defaultName);
+                            tvAvatar.setText(initials(defaultName));
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (!isAdded()) return;
+                    String email = SessionManager.getUserEmail(context);
+                    if (email != null && !email.trim().isEmpty()) {
+                        String defaultName = email.split("@")[0];
+                        tvWelcomeHome.setText(defaultName);
+                        tvAvatar.setText(initials(defaultName));
                     }
                 });
     }
 
     private void loadLoanData() {
-        if (mAuth.getCurrentUser() == null) return;
-        String userId = mAuth.getCurrentUser().getUid();
+        final Context context = (getContext() != null) ? getContext() : getActivity();
+        String userId = SessionManager.getUserId(context);
+        if (userId == null) return;
 
         db.collection("loans").document(userId).get()
                 .addOnSuccessListener(doc -> {

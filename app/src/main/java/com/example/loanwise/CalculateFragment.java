@@ -1,6 +1,7 @@
 package com.example.loanwise;
 
 import android.app.DatePickerDialog;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -334,11 +335,12 @@ public class CalculateFragment extends Fragment {
     // 4. Save to Firestore -> HomeFragment / LoanDetailsFragment read "loans/{uid}"
     // ------------------------------------------------------------------
     private void saveSelection() {
-        if (mAuth.getCurrentUser() == null) {
+        final Context context = (getContext() != null) ? getContext() : getActivity();
+        if (!SessionManager.isLoggedIn(context)) {
             Toast.makeText(getContext(), "Please login again", Toast.LENGTH_SHORT).show();
             return;
         }
-        String userId = mAuth.getCurrentUser().getUid();
+        String userId = SessionManager.getUserId(context);
 
         double prepay = selectedSuggestion != null ? selectedSuggestion.prepayment : 0;
         double saved = selectedSuggestion != null ? selectedSuggestion.interestSaved : 0;

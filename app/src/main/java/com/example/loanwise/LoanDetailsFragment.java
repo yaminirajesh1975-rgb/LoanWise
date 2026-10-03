@@ -1,6 +1,7 @@
 package com.example.loanwise;
 
 import android.app.DatePickerDialog;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -118,8 +119,9 @@ public class LoanDetailsFragment extends Fragment {
         showTab(true);
 
         // Add any EMIs whose debit date has arrived, then load the screen
-        if (mAuth.getCurrentUser() != null) {
-            EmiScheduler.postDueEmis(db, mAuth.getCurrentUser().getUid(),
+        String resolvedUid = SessionManager.getUserId(getContext());
+        if (resolvedUid != null) {
+            EmiScheduler.postDueEmis(db, resolvedUid,
                     count -> { if (isAdded()) loadLoan(); });
         }
         return v;
@@ -149,8 +151,9 @@ public class LoanDetailsFragment extends Fragment {
     // Load loan + history
     // ------------------------------------------------------------------
     private void loadLoan() {
-        if (mAuth.getCurrentUser() == null) return;
-        String uid = mAuth.getCurrentUser().getUid();
+        final Context context = (getContext() != null) ? getContext() : getActivity();
+        String uid = SessionManager.getUserId(context);
+        if (uid == null) return;
 
         db.collection("loans").document(uid).get().addOnSuccessListener(doc -> {
             if (!isAdded()) return;
@@ -345,8 +348,9 @@ public class LoanDetailsFragment extends Fragment {
     // Save the payment + update the loan balance (one atomic transaction)
     // ------------------------------------------------------------------
     private void savePayment(boolean isEmi, double amount, long dateMillis) {
-        if (mAuth.getCurrentUser() == null) return;
-        String uid = mAuth.getCurrentUser().getUid();
+        final Context context = (getContext() != null) ? getContext() : getActivity();
+        String uid = SessionManager.getUserId(context);
+        if (uid == null) return;
 
         DocumentReference loanRef = db.collection("loans").document(uid);
         DocumentReference txRef = loanRef.collection("transactions").document();
@@ -433,8 +437,10 @@ public class LoanDetailsFragment extends Fragment {
     // Delete loan + its transactions
     // ------------------------------------------------------------------
     private void deleteLoan() {
-        if (mAuth.getCurrentUser() == null) return;
-        DocumentReference loanRef = db.collection("loans").document(mAuth.getCurrentUser().getUid());
+        final Context context = (getContext() != null) ? getContext() : getActivity();
+        String uid = SessionManager.getUserId(context);
+        if (uid == null) return;
+        DocumentReference loanRef = db.collection("loans").document(uid);
 
         loanRef.collection("transactions").get().addOnSuccessListener(snap -> {
             WriteBatch batch = db.batch();

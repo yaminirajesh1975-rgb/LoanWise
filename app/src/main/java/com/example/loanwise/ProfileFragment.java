@@ -55,8 +55,9 @@ public class ProfileFragment extends Fragment {
     }
 
     private void loadProfileData() {
-        if (mAuth.getCurrentUser() == null) return;
-        String userId = mAuth.getCurrentUser().getUid();
+        final android.content.Context context = (getContext() != null) ? getContext() : getActivity();
+        String userId = SessionManager.getUserId(context);
+        final String sessionEmail = SessionManager.getUserEmail(context);
 
         db.collection("users").document(userId).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -64,14 +65,27 @@ public class ProfileFragment extends Fragment {
                         String username = documentSnapshot.getString("username");
                         String email = documentSnapshot.getString("email");
                         String phone = documentSnapshot.getString("phoneNumber");
-                        tvProfileName.setText(username != null ? username : "User Profile");
+                        tvProfileName.setText(username != null ? username : (sessionEmail != null ? sessionEmail.split("@")[0] : "User Profile"));
                         if (email != null && !email.trim().isEmpty()) {
                             tvProfilePhone.setText("Email: " + email);
+                        } else if (sessionEmail != null && !sessionEmail.trim().isEmpty()) {
+                            tvProfilePhone.setText("Email: " + sessionEmail);
                         } else if (phone != null && !phone.trim().isEmpty()) {
                             tvProfilePhone.setText("Phone: " + phone);
                         } else {
                             tvProfilePhone.setText("Email: N/A");
                         }
+                    } else {
+                        if (sessionEmail != null && !sessionEmail.trim().isEmpty()) {
+                            tvProfileName.setText(sessionEmail.split("@")[0]);
+                            tvProfilePhone.setText("Email: " + sessionEmail);
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (sessionEmail != null && !sessionEmail.trim().isEmpty()) {
+                        tvProfileName.setText(sessionEmail.split("@")[0]);
+                        tvProfilePhone.setText("Email: " + sessionEmail);
                     }
                 });
     }

@@ -26,18 +26,14 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // Ensure Firebase session is connected for Firestore operations
+        // Ensure Firebase session is connected in background for Firestore operations if supported
         if (mAuth.getCurrentUser() == null) {
             mAuth.signInAnonymously().addOnCompleteListener(task -> {
-                if (task.isSuccessful() && mAuth.getCurrentUser() != null) {
-                    initApp(savedInstanceState);
-                } else {
-                    redirectToLogin();
-                }
+                // Background connection attempt; do not block or kick out authenticated user
             });
-        } else {
-            initApp(savedInstanceState);
         }
+
+        initApp(savedInstanceState);
     }
 
     private void redirectToLogin() {
