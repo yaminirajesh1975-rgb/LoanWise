@@ -96,9 +96,9 @@ adb install -r LoanWise-release.apk
 3. Click **Run 'app'** (or build via command line: `./gradlew assembleDebug` or `./gradlew assembleRelease`).
 
 ### Configuring Backend Server URL on the Phone
-In the app's login screen, tap **"Server Settings"**:
-* **Android Emulator**: `http://10.0.2.2:5001` (default)
-* **Physical Device**: Enter your computer's local Wi-Fi IP address (e.g. `http://192.168.1.15:5001`). Make sure your phone and PC are on the same Wi-Fi network.
+The app connects by default to the production Vercel serverless backend:
+* **Production Endpoint (Default)**: `https://loan-wise-sigma.vercel.app`
+* **Local Development Override**: In the app's login screen, tap **"Server Settings"** to enter `http://10.0.2.2:5001` (Android Emulator) or your computer's local Wi-Fi IP address (e.g. `http://192.168.1.15:5001`) for testing local changes.
 
 ---
 

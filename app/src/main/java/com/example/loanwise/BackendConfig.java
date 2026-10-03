@@ -8,9 +8,8 @@ public class BackendConfig {
     private static final String PREF_NAME = "loanwise_backend_config";
     private static final String KEY_BASE_URL = "backend_base_url";
 
-    // Default for Android emulator to access host machine localhost:5001.
-    // For physical devices, user can tap the Server Settings button to input their PC's LAN IP (e.g. http://192.168.1.10:5001)
-    public static final String DEFAULT_EMULATOR_URL = "http://10.0.2.2:5001";
+    // Production Vercel Serverless Backend URL
+    public static final String DEFAULT_PRODUCTION_URL = "https://loan-wise-sigma.vercel.app";
 
     private static SharedPreferences getPrefs(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -21,7 +20,7 @@ public class BackendConfig {
         if (saved != null && !saved.trim().isEmpty()) {
             return normalizeUrl(saved);
         }
-        return DEFAULT_EMULATOR_URL;
+        return DEFAULT_PRODUCTION_URL;
     }
 
     public static void setBaseUrl(Context context, String url) {
@@ -39,7 +38,7 @@ public class BackendConfig {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-            trimmed = "http://" + trimmed;
+            trimmed = "https://" + trimmed;
         }
         return trimmed;
     }

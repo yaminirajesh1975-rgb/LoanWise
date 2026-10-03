@@ -236,7 +236,7 @@ public class LoginActivity extends AppCompatActivity {
     private void showServerConfigDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Backend Server Configuration");
-        builder.setMessage("Configure the authentication server URL.\nUse 'http://10.0.2.2:5001' for Android Emulator or your PC's LAN IP for physical devices:");
+        builder.setMessage("Configure the authentication server URL.\nDefault production: https://loan-wise-sigma.vercel.app");
 
         final EditText input = new EditText(this);
         input.setText(BackendConfig.getBaseUrl(this));
@@ -251,7 +251,7 @@ public class LoginActivity extends AppCompatActivity {
         });
         builder.setNeutralButton("Reset Default", (dialog, which) -> {
             BackendConfig.resetToDefault(this);
-            Toast.makeText(this, "Reset to default: " + BackendConfig.DEFAULT_EMULATOR_URL, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Reset to default: " + BackendConfig.DEFAULT_PRODUCTION_URL, Toast.LENGTH_SHORT).show();
         });
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
         builder.show();
