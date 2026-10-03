@@ -3,9 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const fs = require("fs");
-const path = require("path");
 const { Resend } = require("resend");
+const { Redis } = require("@upstash/redis");
 
 const app = express();
 app.use(cors());
@@ -29,35 +28,76 @@ if (RESEND_API_KEY && RESEND_API_KEY !== "your_resend_api_key_here") {
   resendClient = new Resend(RESEND_API_KEY);
 }
 
-// Memory OTP storage with /tmp sync for serverless container restarts
-const TMP_STORE_FILE = path.join("/tmp", "loanwise_otp_store.json");
-const otpStore = new Map();
+// Initialize Vercel KV / Upstash Redis client if environment variables exist
+const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
-function syncFromDisk() {
+let redisClient = null;
+if (kvUrl && kvToken) {
   try {
-    if (fs.existsSync(TMP_STORE_FILE)) {
-      const data = JSON.parse(fs.readFileSync(TMP_STORE_FILE, "utf-8"));
-      for (const [k, v] of data) {
-        if (!otpStore.has(k)) {
-          otpStore.set(k, v);
+    redisClient = new Redis({
+      url: kvUrl,
+      token: kvToken
+    });
+    console.log("[Storage] Connected to Vercel KV / Upstash Redis persistent store.");
+  } catch (err) {
+    console.error("[Storage Error] Failed to initialize Redis client:", err.message);
+  }
+} else {
+  console.log("[Storage] No KV credentials found. Using local in-memory store.");
+}
+
+// In-memory fallback map for local development and test suite
+const memoryStore = new Map();
+
+async function getOtpRecord(email) {
+  const key = `loanwise:otp:${email}`;
+  if (redisClient) {
+    try {
+      const data = await redisClient.get(key);
+      if (!data) return null;
+      if (typeof data === "object") return data;
+      if (typeof data === "string") {
+        try {
+          return JSON.parse(data);
+        } catch {
+          return null;
         }
       }
+      return null;
+    } catch (err) {
+      console.error("[Storage Error] Redis get failed, checking memory fallback:", err.message);
+      return memoryStore.get(email) || null;
     }
-  } catch (e) {
-    // Ignore read errors
+  }
+  return memoryStore.get(email) || null;
+}
+
+async function setOtpRecord(email, record, ttlSeconds = 600) {
+  const key = `loanwise:otp:${email}`;
+  memoryStore.set(email, record);
+
+  if (redisClient) {
+    try {
+      await redisClient.set(key, record, { ex: ttlSeconds });
+    } catch (err) {
+      console.error("[Storage Error] Redis set failed:", err.message);
+    }
   }
 }
 
-function syncToDisk() {
-  try {
-    fs.writeFileSync(TMP_STORE_FILE, JSON.stringify(Array.from(otpStore.entries())));
-  } catch (e) {
-    // Ignore write errors in restricted environments
+async function deleteOtpRecord(email) {
+  const key = `loanwise:otp:${email}`;
+  memoryStore.delete(email);
+
+  if (redisClient) {
+    try {
+      await redisClient.del(key);
+    } catch (err) {
+      console.error("[Storage Error] Redis del failed:", err.message);
+    }
   }
 }
-
-// Initial sync on module load
-syncFromDisk();
 
 // Helper: Normalize email
 function normalizeEmail(email) {
@@ -84,6 +124,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     service: "LoanWise Auth API",
+    storage: redisClient ? "vercel_kv" : "memory_fallback",
     healthCheck: "/health",
     resendConfigured: !!resendClient,
     timestamp: new Date().toISOString()
@@ -95,6 +136,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     service: "LoanWise Auth API",
+    storage: redisClient ? "vercel_kv" : "memory_fallback",
     resendConfigured: !!resendClient,
     timestamp: new Date().toISOString()
   });
@@ -105,7 +147,6 @@ app.get("/health", (req, res) => {
 // Body: { "email": "user@example.com" }
 app.post("/auth/send-otp", async (req, res) => {
   try {
-    syncFromDisk();
     const rawEmail = req.body && req.body.email;
     const email = normalizeEmail(rawEmail);
 
@@ -117,7 +158,7 @@ app.post("/auth/send-otp", async (req, res) => {
     }
 
     const now = Date.now();
-    const existing = otpStore.get(email);
+    const existing = await getOtpRecord(email);
 
     // Cooldown verification (Rate Limit)
     if (existing && existing.lastRequestedAt && now - existing.lastRequestedAt < COOLDOWN_MS) {
@@ -136,15 +177,15 @@ app.post("/auth/send-otp", async (req, res) => {
     // Hash the OTP before storing
     const otpHash = hashOtp(email, otp);
 
-    // Store in memory and sync to disk
-    otpStore.set(email, {
+    // Store in persistent storage (TTL = 10 minutes to cover expiry and cooldown window)
+    const record = {
       otpHash,
       expiresAt: now + OTP_EXPIRY_MS,
       attempts: 0,
       used: false,
       lastRequestedAt: now
-    });
-    syncToDisk();
+    };
+    await setOtpRecord(email, record, 600);
 
     console.log(`[INFO] OTP generated for email: ${email.replace(/(?<=.{2}).(?=[^@]*?@)/g, "*")}`);
 
@@ -216,9 +257,8 @@ app.post("/auth/send-otp", async (req, res) => {
 // Endpoint: Verify OTP
 // POST /auth/verify-otp
 // Body: { "email": "user@example.com", "otp": "123456" }
-app.post("/auth/verify-otp", (req, res) => {
+app.post("/auth/verify-otp", async (req, res) => {
   try {
-    syncFromDisk();
     const rawEmail = req.body && req.body.email;
     const rawOtp = req.body && req.body.otp;
 
@@ -239,7 +279,7 @@ app.post("/auth/verify-otp", (req, res) => {
       });
     }
 
-    const record = otpStore.get(email);
+    const record = await getOtpRecord(email);
 
     if (!record) {
       return res.status(400).json({
@@ -274,7 +314,6 @@ app.post("/auth/verify-otp", (req, res) => {
 
     // Increment attempts
     record.attempts += 1;
-    syncToDisk();
 
     // Verify hash using constant-time comparison
     const incomingHash = hashOtp(email, otp);
@@ -286,6 +325,9 @@ app.post("/auth/verify-otp", (req, res) => {
 
     if (!match) {
       const remaining = MAX_ATTEMPTS - record.attempts;
+      const ttlSeconds = Math.max(60, Math.ceil((record.expiresAt - Date.now()) / 1000));
+      await setOtpRecord(email, record, ttlSeconds);
+
       if (remaining <= 0) {
         return res.status(429).json({
           success: false,
@@ -299,9 +341,9 @@ app.post("/auth/verify-otp", (req, res) => {
       });
     }
 
-    // Mark OTP as used immediately to prevent replay attacks
+    // Mark OTP as used immediately to prevent replay attacks across all instances
     record.used = true;
-    syncToDisk();
+    await setOtpRecord(email, record, 300);
 
     // Generate JWT token
     const token = jwt.sign(

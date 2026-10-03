@@ -10,7 +10,7 @@ This repository features **Custom Backend-Generated Email OTP Authentication** u
 
 The system consists of two parts:
 1. **Android Application (`app/`)**: Native Android (Java) frontend providing the user interface, loan calculators, and Firebase Firestore integration.
-2. **Authentication Backend (`backend/`)**: Node.js/Express service that generates cryptographically secure 6-digit OTPs, hashes them with SHA-256 and server-side salt, enforces rate limits, delivers emails via the **Resend API**, and issues signed JWT session tokens upon verification.
+2. **Authentication Backend (`backend/`)**: Node.js/Express service that generates cryptographically secure 6-digit OTPs, hashes them with SHA-256 and server-side salt, enforces rate limits, stores state persistently via **Vercel KV / Upstash Redis** (with local memory fallback), delivers emails via the **Resend API**, and issues signed JWT session tokens upon verification.
 
 ---
 
